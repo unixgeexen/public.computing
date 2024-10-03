@@ -22,26 +22,23 @@ Required Repos
 --------------
 * Separation factors
     * Public vs Private - no GitHub RTD for private
-        * /share/sites/public
-        * /share/sites/private
+
+.. code-block:: console
+
+   /share/sites/public
+   /share/sites/private
+
     * Computing vs non-Computing 
-        * /share/sites/*/computing
-        * /share/sites/*/work
-        * /share/sites/*/home
 
-Current Repos
---------------------------
-Functioning
-~~~~~~~~~~~
-* https://unixgeexen-demo.readthedocs.io/en/latest/
-    * https://readthedocs.org/dashboard/
-    * https://github.com/readthedocs/template.git
-* https://unixgeexen.github.io/rtd-github-pages/ # Altfield as github pages
-* https://sphinx-rtd-tutorial.readthedocs.io/en/latest/ # Howto
+.. code-block:: console
 
-Non-Functioning
-~~~~~~~~~~~~~~~
-* compinfo.rtd https://github.com/unixgeexen/compinfo.rtd.git
+   /share/sites/*/computing
+   /share/sites/*/work
+   /share/sites/*/home
+
+Repo List - Relationships - Working
+------------------------------------
+* Build a table here
 
 Sphinx RTD simpleble Tutorial
 -----------------------------
