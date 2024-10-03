@@ -15,6 +15,7 @@ Contents
    :glob:
    :caption: Contents:
 
+   documentation/index
    development/index
    tools/index
    operatingsystems/index
