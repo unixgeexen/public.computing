@@ -19,9 +19,6 @@ TODO
     * standard written documentation
     * fix lumarche in starter
     * set up working kroki config for full tool chain
-        * `Sample kroki RTD for antora <https://github.com/man-chi/foundation/blob/main/.readthedocs.yaml>`_
-        * `lims sample <https://github.com/genespace-ru/lims-docs/blob/1d139c074e948462cd1a209dfc217c222879febc/requirements.txt>`_
-        * `CERN RTD.yaml <https://github.com/CERN/Quantumacy/blob/main/.readthedocs.yaml>`_
 * Document processes
     * how frequently to push out documentation changes
     * adding new documentation directory
