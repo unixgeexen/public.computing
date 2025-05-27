@@ -16,6 +16,7 @@ Contents
    :caption: Contents:
 
    documentation/index
+   ai/index
    development/index
    tools/index
    operatingsystems/index

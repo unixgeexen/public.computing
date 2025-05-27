@@ -1,5 +1,5 @@
-Sphinx RTD Starter
-==================
+Sphinx RTD Starter - Configuration Notes and References
+=======================================================
 
 Introduction
 ------------
@@ -17,6 +17,14 @@ References
         * Great ideas and scripts for full pipeline local > github > rtd
     * `Continuous Docmentation - GitHub - RTD #2 <https://tech.michaelaltfield.net/2020/07/23/sphinx-rtd-github-pages-2/>`_
         * Ideas for versioning and internationalisation
+
+Setting up Starter Repo in GitHub
+---------------------------------
+* Current repos
+    * /share/sites/starter/sphinx.rtd.starter - good examples for a starter repo
+    * /share/sites/public/computing - functional rtd configuration
+* New starter repo
+    * /share/sites/starter/sphinx.rtd
 
 Required Repos
 --------------
@@ -97,6 +105,7 @@ Simple test setup and run
 --------------------------
 * SphinxDir=sphinx
 * SphinxBaseDir=/share/sites/${SphinxDir}
+* mkdir -p $SphinxBaseDir
 * cd $SphinxBaseDir
 * SphinxEnvt=base
 * python -m venv sphinx.${SphinxEnvt}

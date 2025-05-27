@@ -6,13 +6,25 @@ Git Introduction
 
 References
 ----------
+* `Git Cheatsheet <https://opensource.com/downloads/cheat-sheet-git?intcmp=7013a000002CxqLAAS>`_
 * `The Git Book <https://git-scm.com/book/en/v2>`_
 * `Git User Manual <https://mirrors.edge.kernel.org/pub/software/scm/git/docs/user-manual.html#the-workflow>`_
+* `Steele Git Workflow <https://blog.osteele.com/2008/05/my-git-workflow/>`_
 * Mastering Git - Jakub Nrebski
+* `Visualising Git <https://www.cs.cmu.edu/~539/notes/notes-visualizing-git-workflows.pdf>`_
+* `Git commands with diagrams <https://codewords.recurse.com/issues/two/git-from-the-inside-out>`_
+    * Great set of commands described
+* `Simple command starter set <https://www.freecodecamp.org/news/learn-the-basics-of-git-in-under-10-minutes-da548267cc91/>`_
+* `Git scripts from Git Extras <https://opensource.com/article/20/4/git-extras>`_
+    * git-ignore, git-info, git-mr, git-pr, git-release
 * /share/sites/internal.sphinx.tw.chm/docs/source/compinfo/git.rst - converted from tiddlywiki to rst
+* `Reverse, reset, rebase <https://opensource.com/article/18/6/git-reset-revert-rebase-commands>`_
 * `fix merge conflicts <https://www.linuxnix.com/fixing-git-github-merge-conflicts/>`_
 * `advanced git tutorial <https://www.howtoforge.com/advanced-git-tutorial/>`_
 * `Run your own git server <https://www.linuxfoundation.org/blog/blog/classic-sysadmin-how-to-run-your-own-git-server>`_
+* Creating a killer git profile
+    * `Part 1 <https://daily.dev/posts/creating-a-killer-github-profile-readme-part-1>`_
+    * `Part 2 <https://dev.to/dailydotdev/creating-a-killer-github-profile-readme-part-2-1hie>`_
 
 Notes
 ----------
