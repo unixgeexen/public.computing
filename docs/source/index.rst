@@ -17,6 +17,7 @@ Contents
 
    documentation/index
    ai/index
+   aix/index
    development/index
    tools/index
    operatingsystems/index
