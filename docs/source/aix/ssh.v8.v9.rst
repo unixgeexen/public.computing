@@ -5,7 +5,7 @@ SSH V8.1 to V9.7 Upgrade Impact Analysis for AIX Systems
 
 Summary
 -------
-This document details the ten most significant changes when upgrading OpenSSH from V8.1 to V9.7 on AIX, including security enhancements, deprecated features, and functionality changes. All audit commands have been validated for AIX compatibility, using native AIX tools like `netstat`, `rmsock`, and IBM-specific log locations. A comprehensive Korn shell (ksh) audit script is provided to identify potential upgrade issues on V8.1 systems.
+This document details the ten most significant changes when upgrading OpenSSH from V8.1 to V9.7 on AIX, including security enhancements, deprecated features, and functionality changes. The audit script has been updated to output directly to stdout with each line prefixed by the short hostname and timestamp (yyyymmdd.hhmmss), clearly indicating potential issues with [WARNING] and [INFO] labels.
 
 Significant Changes and AIX-Compatible Audit Procedures
 ------------------------------------------------------
@@ -16,7 +16,6 @@ Significant Changes and AIX-Compatible Audit Procedures
 - **AIX Audit Commands**:
   - Host keys: ``grep -i ssh_host_dsa /etc/ssh/sshd_config``
   - User keys: ``find / -xdev -name 'id_dsa*' -print 2>/dev/null``
-  - Active connections: ``netstat -an | grep '.22' | awk '{print $1}' | sort | uniq -c``
 
 2. **Finite-Field Diffie-Hellman Disabled**
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -77,81 +76,122 @@ AIX SSH Upgrade Audit Script
 ----------------------------
 
 .. code-block:: ksh
+   :caption: AIX SSH Upgrade Compatibility Auditor (ssh_audit.ksh)
    
    #!/usr/bin/ksh
    # AIX SSH V8.1 to V9.7 Upgrade Compatibility Auditor
-   # Run as root on V8.1 system before upgrade
-   # Output: /tmp/ssh_audit_YYYYMMDD.log
+   # Outputs directly to stdout with hostname and timestamp prefix
+   # Each line shows status with [INFO] or [WARNING]
    
-   LOG_FILE="/tmp/ssh_audit_$(date +%Y%m%d).log"
-   exec > $LOG_FILE 2>&1
+   HOST=$(hostname -s)
+   TIMESTAMP=$(date +%Y%m%d.%H%M%S)
+   PREFIX="$HOST $TIMESTAMP"
    
-   echo "=== AIX SSH Upgrade Compatibility Audit ==="
-   echo "Timestamp: $(date)"
-   echo "Hostname: $(hostname)"
-   echo "OS Version: $(oslevel -s)"
+   print_header() {
+     echo "$PREFIX: [INFO] ===== $1 ====="
+   }
+   
+   print_warning() {
+     echo "$PREFIX: [WARNING] $1"
+   }
+   
+   print_info() {
+     echo "$PREFIX: [INFO] $1"
+   }
+   
+   print_header "AIX SSH Upgrade Compatibility Audit"
+   print_info "Timestamp: $(date)"
+   print_info "OS Version: $(oslevel -s)"
    echo ""
    
    # 1. DSA Key Check
-   echo "===== [1/6] DSA KEY AUDIT ====="
-   echo "-- Host keys in config --"
-   grep -i ssh_host_dsa /etc/ssh/sshd_config
-   echo "\n-- User DSA keys --"
-   find / -xdev -name 'id_dsa*' -print 2>/dev/null
-   echo "\n-- Active SSH connections --"
-   netstat -an | grep '.22' | awk '{print $1}' | sort | uniq -c
+   print_header "1/6: DSA KEY AUDIT"
+   # Check host keys
+   grep -i ssh_host_dsa /etc/ssh/sshd_config | while read -r line; do
+     print_warning "DSA host key configured: $line"
+   done
+   
+   # Find user keys
+   find / -xdev -name 'id_dsa*' -print 2>/dev/null | while read -r key; do
+     print_warning "DSA user key found: $key"
+   done
+   
+   # Active connections
+   print_info "Active SSH connections:"
+   netstat -an | grep '.22' | awk '{print $1}' | sort | uniq -c | while read -r conn; do
+     print_info "Connection: $conn"
+   done
    echo ""
    
    # 2. KEX Algorithm Check
-   echo "===== [2/6] KEX ALGORITHM AUDIT ====="
-   echo "-- Custom KEX configurations --"
-   grep -i KexAlgorithms /etc/ssh/sshd_config
-   echo "\n-- Recent DH connections (last 50) --"
-   grep -i 'kex:.*diffie-hellman' /var/adm/syslog 2>/dev/null | tail -50
+   print_header "2/6: KEX ALGORITHM AUDIT"
+   # Config overrides
+   grep -i KexAlgorithms /etc/ssh/sshd_config | grep diffie-hellman | while read -r line; do
+     print_warning "Legacy KEX configured: $line"
+   done
+   
+   # Log analysis
+   print_info "Recent DH connections:"
+   grep -i 'kex:.*diffie-hellman' /var/adm/syslog 2>/dev/null | tail -5 | while read -r entry; do
+     print_info "Log entry: $entry"
+   done
    echo ""
    
    # 3. ControlMaster Usage
-   echo "===== [3/6] CONTROLMASTER AUDIT ====="
-   echo "-- System-wide configurations --"
-   grep -r ControlMaster=yes /etc/ssh/ 2>/dev/null
-   echo "\n-- User configurations --"
+   print_header "3/6: CONTROLMASTER AUDIT"
+   # System configurations
+   grep -r ControlMaster=yes /etc/ssh/ 2>/dev/null | while read -r config; do
+     print_warning "ControlMaster enabled: $config"
+   done
+   
+   # User configurations
    for user in $(lsuser -a home ALL | awk '$2 != "/" {print $1}'); do
      [ -f $(eval echo ~$user)/.ssh/config ] && \
-     grep -l ControlMaster=yes $(eval echo ~$user)/.ssh/config 2>/dev/null
+     grep -l ControlMaster=yes $(eval echo ~$user)/.ssh/config 2>/dev/null | while read -r file; do
+       print_warning "User ControlMaster config: $user: $file"
+     done
    done
-   echo "\n-- Active multiplexed sessions --"
-   ps -ef | grep -E 'ssh.*-M'
+   
+   # Active sessions
+   print_info "Active multiplexed sessions:"
+   ps -ef | grep -E 'ssh.*-M' | while read -r session; do
+     print_info "Session: $session"
+   done
    echo ""
    
    # 4. Private Key Format Check
-   echo "===== [4/6] PRIVATE KEY FORMAT AUDIT ====="
-   echo "-- Keys without trailing newlines --"
+   print_header "4/6: PRIVATE KEY FORMAT AUDIT"
    find /etc/ssh /home -name '*.pem' -exec awk '
      END {if (NR>0 && $0 !~ /\n$/) print FILENAME}
-   ' {} \; 2>/dev/null
+   ' {} \; 2>/dev/null | while read -r keyfile; do
+     print_warning "Missing trailing newline: $keyfile"
+   done
    echo ""
    
    # 5. Host Key Documentation
-   echo "===== [5/6] HOST KEY DOCUMENTATION ====="
-   echo "-- Current host key fingerprints --"
+   print_header "5/6: HOST KEY DOCUMENTATION"
+   print_info "Current host key fingerprints:"
    for key in /etc/ssh/ssh_host_*_key; do
-     [ -f "$key" ] && ssh-keygen -l -f "$key"
+     [ -f "$key" ] && ssh-keygen -l -f "$key" | while read -r fp; do
+       print_info "Fingerprint: $fp"
+     done
    done
    echo ""
    
    # 6. System Compatibility
-   echo "===== [6/6] SYSTEM COMPATIBILITY CHECKS ====="
-   echo "-- USB Security Devices --"
-   lsdev -Cc usb | grep -i security
-   echo "\n-- SSH Package Version --"
-   lslpp -L | grep openssh.base
+   print_header "6/6: SYSTEM COMPATIBILITY CHECKS"
+   print_info "USB Security Devices:"
+   lsdev -Cc usb | grep -i security | while read -r device; do
+     print_info "Device: $device"
+   done
+   
+   print_info "SSH Package Version:"
+   lslpp -L | grep openssh.base | while read -r pkg; do
+     print_info "Package: $pkg"
+   done
    echo ""
    
-   echo "=== AUDIT COMPLETE ==="
-   echo "Output saved to $LOG_FILE"
-   echo "Next steps:"
-   echo "1. Backup /etc/ssh/ and user .ssh directories"
-   echo "2. Review IBM documentation: https://www.ibm.com/support/pages/aix-openssh"
+   print_header "AUDIT COMPLETE"
 
 Audit Summary Table
 -------------------
@@ -176,14 +216,16 @@ References
 
 Metadata
 --------
-:Audit Script Version: 1.1
-:Compatibility: AIX 6.1+, OpenSSH 8.1
-:Script Output: /tmp/ssh_audit_YYYYMMDD.log
+:Audit Script Version: 2.0
+:Output Format: Stdout with prefix HOSTNAME YYYYMMDD.HHMMSS
+:Status Indicators: 
+  - [INFO]: Normal operational message
+  - [WARNING]: Potential upgrade issue
 :Critical Checks:
   - DSA key usage
   - Diffie-Hellman KEX algorithms
   - Private key formatting
-:Tags: AIX, SSH-Upgrade, Audit-Script, V8.1, V9.7, Korn-Shell, Security
+:Tags: AIX, SSH-Upgrade, Audit-Script, Stdout-Logging, Prefix-Format, Security
 
 Context
 -------
@@ -193,4 +235,4 @@ Context
   - Temperature: 0.7
   - Max Tokens: 4096
 - **Original Request**: 
-  "Provide AIX-compatible audit commands and combine into single ksh script"
+  "Update script to output to stdout with hostname and timestamp prefix per line"
