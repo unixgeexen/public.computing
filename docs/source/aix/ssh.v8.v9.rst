@@ -5,7 +5,7 @@ SSH V8.1 to V9.7 Upgrade Impact Analysis for AIX Systems
 
 Summary
 -------
-This document details the ten most significant changes when upgrading OpenSSH from V8.1 to V9.7 on AIX, including security enhancements, deprecated features, and functionality changes. The audit script has been updated to output directly to stdout with each line prefixed by the short hostname and timestamp (yyyymmdd.hhmmss), clearly indicating potential issues with [WARNING] and [INFO] labels.
+This document details the ten most significant changes when upgrading OpenSSH from V8.1 to V9.7 on AIX. The audit script now outputs in CSV format with comma delimiters and no blank lines. Each record includes the short hostname, timestamp (yyyymmdd.hhmmss), status ([INFO] or [WARNING]), audit section, and specific finding.
 
 Significant Changes and AIX-Compatible Audit Procedures
 ------------------------------------------------------
@@ -72,160 +72,145 @@ Significant Changes and AIX-Compatible Audit Procedures
 - **Activation**: Add to `/etc/ssh/sshd_config`::
       DisplayPatchVersion yes
 
-AIX SSH Upgrade Audit Script
-----------------------------
+AIX SSH Upgrade Audit Script (CSV Output)
+-----------------------------------------
 
 .. code-block:: ksh
-   :caption: AIX SSH Upgrade Compatibility Auditor (ssh_audit.ksh)
+   :caption: AIX SSH Upgrade Auditor (ssh_audit_csv.ksh)
    
    #!/usr/bin/ksh
    # AIX SSH V8.1 to V9.7 Upgrade Compatibility Auditor
-   # Outputs directly to stdout with hostname and timestamp prefix
-   # Each line shows status with [INFO] or [WARNING]
+   # CSV Output Format: hostname,timestamp,status,section,message
    
    HOST=$(hostname -s)
    TIMESTAMP=$(date +%Y%m%d.%H%M%S)
-   PREFIX="$HOST $TIMESTAMP"
    
-   print_header() {
-     echo "$PREFIX: [INFO] ===== $1 ====="
+   print_csv() {
+     STATUS=$1
+     SECTION=$2
+     MESSAGE=$3
+     echo "$HOST,$TIMESTAMP,$STATUS,$SECTION,\"$MESSAGE\""
    }
    
-   print_warning() {
-     echo "$PREFIX: [WARNING] $1"
-   }
-   
-   print_info() {
-     echo "$PREFIX: [INFO] $1"
-   }
-   
-   print_header "AIX SSH Upgrade Compatibility Audit"
-   print_info "Timestamp: $(date)"
-   print_info "OS Version: $(oslevel -s)"
-   echo ""
+   print_csv "INFO" "Audit" "===== START AIX SSH UPGRADE COMPATIBILITY AUDIT ====="
+   print_csv "INFO" "System" "Hostname: $HOST"
+   print_csv "INFO" "System" "OS Version: $(oslevel -s)"
    
    # 1. DSA Key Check
-   print_header "1/6: DSA KEY AUDIT"
-   # Check host keys
+   SECTION="DSA Key"
    grep -i ssh_host_dsa /etc/ssh/sshd_config | while read -r line; do
-     print_warning "DSA host key configured: $line"
+     print_csv "WARNING" "$SECTION" "DSA host key configured: $line"
    done
    
-   # Find user keys
    find / -xdev -name 'id_dsa*' -print 2>/dev/null | while read -r key; do
-     print_warning "DSA user key found: $key"
+     print_csv "WARNING" "$SECTION" "DSA user key found: $key"
    done
-   
-   # Active connections
-   print_info "Active SSH connections:"
-   netstat -an | grep '.22' | awk '{print $1}' | sort | uniq -c | while read -r conn; do
-     print_info "Connection: $conn"
-   done
-   echo ""
    
    # 2. KEX Algorithm Check
-   print_header "2/6: KEX ALGORITHM AUDIT"
-   # Config overrides
+   SECTION="KEX Algorithm"
    grep -i KexAlgorithms /etc/ssh/sshd_config | grep diffie-hellman | while read -r line; do
-     print_warning "Legacy KEX configured: $line"
+     print_csv "WARNING" "$SECTION" "Legacy KEX configured: $line"
    done
    
-   # Log analysis
-   print_info "Recent DH connections:"
    grep -i 'kex:.*diffie-hellman' /var/adm/syslog 2>/dev/null | tail -5 | while read -r entry; do
-     print_info "Log entry: $entry"
+     print_csv "INFO" "$SECTION" "Recent DH connection: $entry"
    done
-   echo ""
    
    # 3. ControlMaster Usage
-   print_header "3/6: CONTROLMASTER AUDIT"
-   # System configurations
+   SECTION="ControlMaster"
    grep -r ControlMaster=yes /etc/ssh/ 2>/dev/null | while read -r config; do
-     print_warning "ControlMaster enabled: $config"
+     print_csv "WARNING" "$SECTION" "System ControlMaster enabled: $config"
    done
    
-   # User configurations
    for user in $(lsuser -a home ALL | awk '$2 != "/" {print $1}'); do
      [ -f $(eval echo ~$user)/.ssh/config ] && \
      grep -l ControlMaster=yes $(eval echo ~$user)/.ssh/config 2>/dev/null | while read -r file; do
-       print_warning "User ControlMaster config: $user: $file"
+       print_csv "WARNING" "$SECTION" "User ControlMaster config: $user: $file"
      done
    done
    
-   # Active sessions
-   print_info "Active multiplexed sessions:"
    ps -ef | grep -E 'ssh.*-M' | while read -r session; do
-     print_info "Session: $session"
+     print_csv "INFO" "$SECTION" "Active multiplexed session: $session"
    done
-   echo ""
    
    # 4. Private Key Format Check
-   print_header "4/6: PRIVATE KEY FORMAT AUDIT"
+   SECTION="Key Format"
    find /etc/ssh /home -name '*.pem' -exec awk '
      END {if (NR>0 && $0 !~ /\n$/) print FILENAME}
    ' {} \; 2>/dev/null | while read -r keyfile; do
-     print_warning "Missing trailing newline: $keyfile"
+     print_csv "WARNING" "$SECTION" "Missing trailing newline: $keyfile"
    done
-   echo ""
    
    # 5. Host Key Documentation
-   print_header "5/6: HOST KEY DOCUMENTATION"
-   print_info "Current host key fingerprints:"
+   SECTION="Host Key"
    for key in /etc/ssh/ssh_host_*_key; do
      [ -f "$key" ] && ssh-keygen -l -f "$key" | while read -r fp; do
-       print_info "Fingerprint: $fp"
+       print_csv "INFO" "$SECTION" "Host key fingerprint: $fp"
      done
    done
-   echo ""
    
    # 6. System Compatibility
-   print_header "6/6: SYSTEM COMPATIBILITY CHECKS"
-   print_info "USB Security Devices:"
+   SECTION="Compatibility"
    lsdev -Cc usb | grep -i security | while read -r device; do
-     print_info "Device: $device"
+     print_csv "INFO" "$SECTION" "Security device detected: $device"
    done
    
-   print_info "SSH Package Version:"
    lslpp -L | grep openssh.base | while read -r pkg; do
-     print_info "Package: $pkg"
+     print_csv "INFO" "$SECTION" "SSH package installed: $pkg"
    done
-   echo ""
    
-   print_header "AUDIT COMPLETE"
+   print_csv "INFO" "Audit" "===== AUDIT COMPLETE ====="
+
+CSV Output Example
+------------------
+
+.. code-block:: text
+   :caption: Sample Script Output
+
+   aixserver01,20250710.142305,INFO,Audit,"===== START AIX SSH UPGRADE COMPATIBILITY AUDIT ====="
+   aixserver01,20250710.142305,INFO,System,"Hostname: aixserver01"
+   aixserver01,20250710.142305,INFO,System,"OS Version: 7200-05-02-2024"
+   aixserver01,20250710.142305,WARNING,DSA Key,"DSA host key configured: HostKey /etc/ssh/ssh_host_dsa_key"
+   aixserver01,20250710.142305,WARNING,DSA Key,"DSA user key found: /home/user1/.ssh/id_dsa"
+   aixserver01,20250710.142305,WARNING,KEX Algorithm,"Legacy KEX configured: KexAlgorithms diffie-hellman-group14-sha1"
+   aixserver01,20250710.142305,INFO,KEX Algorithm,"Recent DH connection: sshd[1234]: kex: client->server diffie-hellman-group14-sha1"
+   aixserver01,20250710.142305,WARNING,ControlMaster,"System ControlMaster enabled: /etc/ssh/ssh_config:ControlMaster yes"
+   aixserver01,20250710.142305,WARNING,ControlMaster,"User ControlMaster config: user2: /home/user2/.ssh/config"
+   aixserver01,20250710.142305,INFO,ControlMaster,"Active multiplexed session: user3  12345     1   0 14:23:05  pts/0  0:00 ssh -M -L 8080:localhost:80 remotehost"
+   aixserver01,20250710.142305,WARNING,Key Format,"Missing trailing newline: /etc/ssh/server_key.pem"
+   aixserver01,20250710.142305,INFO,Host Key,"Host key fingerprint: 2048 SHA256:AbCdE... /etc/ssh/ssh_host_rsa_key (RSA)"
+   aixserver01,20250710.142305,INFO,Compatibility,"Security device detected: usbsecurity0 Available  USB Security Device"
+   aixserver01,20250710.142305,INFO,Compatibility,"SSH package installed: openssh.base.server 8.1.0.6100  COMMITTED  Open Secure Shell Commands"
+   aixserver01,20250710.142305,INFO,Audit,"===== AUDIT COMPLETE ====="
 
 Audit Summary Table
 -------------------
 
-.. csv-table:: AIX-Compatible Audit Commands
-   :header: "Check", "Command", "Purpose"
-   :widths: 20, 45, 35
+.. csv-table:: AIX Audit CSV Fields
+   :header: "Field", "Description", "Example"
+   :widths: 15, 35, 50
 
-   "DSA Keys", "``find / -xdev -name 'id_dsa*'``", "Locate user DSA keys"
-   "DH KEX Usage", "``grep 'kex:.*diffie-hellman' /var/adm/syslog``", "Detect legacy KEX usage"
-   "ControlMaster", "``grep -r ControlMaster=yes /etc/ssh/``", "Find multiplexing configurations"
-   "Key Format", "``awk 'END{if($0!~/\n$/)print FILENAME}' key.pem``", "Check newline compliance"
-   "Host Keys", "``ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key``", "Record pre-upgrade fingerprints"
+   "hostname", "Short hostname of the system", "aixserver01"
+   "timestamp", "Script runtime (YYYYMMDD.HHMMSS)", "20250710.142305"
+   "status", "Finding severity ([INFO] or [WARNING])", "[WARNING]"
+   "section", "Audit category section", "DSA Key"
+   "message", "Detailed finding description", "DSA user key found: /home/user/.ssh/id_dsa"
 
 References
 ----------
 1. `IBM AIX 7.2 SSH Documentation <https://www.ibm.com/docs/en/aix/7.2?topic=openssh-secure-shell-commands>`_
 2. `AIX System Log Locations <https://www.ibm.com/support/pages/where-are-error-logs-located-aix>`_
 3. `OpenSSH 9.7 Release Notes <https://www.openssh.com/releasenotes.html#9.7>`_
-4. `AIX Network Command Reference <https://www.ibm.com/docs/en/aix/7.3?topic=n-netstat-command>`_
-5. `AIX Process Management <https://www.ibm.com/docs/en/aix/7.3?topic=commands-ps-command>`_
+4. `AIX CSV Processing <https://www.ibm.com/docs/en/aix/7.3?topic=manipulation-creating-csv-files>`_
 
 Metadata
 --------
-:Audit Script Version: 2.0
-:Output Format: Stdout with prefix HOSTNAME YYYYMMDD.HHMMSS
-:Status Indicators: 
-  - [INFO]: Normal operational message
-  - [WARNING]: Potential upgrade issue
-:Critical Checks:
-  - DSA key usage
-  - Diffie-Hellman KEX algorithms
-  - Private key formatting
-:Tags: AIX, SSH-Upgrade, Audit-Script, Stdout-Logging, Prefix-Format, Security
+:Audit Script Version: 3.0
+:Output Format: CSV (Comma-Separated Values)
+:Delimiter: Comma (,)
+:Special Handling: Double quotes around message field
+:No Blank Lines: All empty lines removed from output
+:Tags: AIX, SSH-Upgrade, Audit-Script, CSV-Output, No-Blank-Lines, Security
 
 Context
 -------
@@ -235,4 +220,4 @@ Context
   - Temperature: 0.7
   - Max Tokens: 4096
 - **Original Request**: 
-  "Update script to output to stdout with hostname and timestamp prefix per line"
+  "Ensure script output is in CSV format with comma delimiter, no blank lines"
