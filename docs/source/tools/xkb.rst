@@ -10,6 +10,7 @@ References
 * `Good practical example with code <https://medium.com/@damko/a-simple-humble-but-comprehensive-guide-to-xkb-for-linux-6f1ad5e13450>`_
 * `ubuntu community <https://help.ubuntu.com/community/Custom%20keyboard%20layout%20definitions>`_
 * `Excellent description - charvolant - firefox WARNING <https://www.charvolant.org/doug/xkb/html/node5.html>`_
+* `xkbcommon - file description <https://xkbcommon.org/doc/current/xkb-intro.html#md_doc_2introduction-to-xkb>`_
 * Files
    * /usr/share/X11/xkb
    * /etc/default/keyboard - options to pass to xkb

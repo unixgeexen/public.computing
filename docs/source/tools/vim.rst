@@ -6,6 +6,8 @@ Hints
 * `vim galore <https://awesomeopensource.com/project/mhinz/vim-galore>`_
 * `patient vimmer <https://romainl.github.io/the-patient-vimmer/2.html>`_
 * `interesting layout <https://spacevim.org/documentation/>`_
+* `vim as language/mindset <https://danielmiessler.com/blog/vim>`_
+* `vim reference card <https://danielmiessler.com/blog/vim>`_
 
 TODO
 ----
@@ -20,6 +22,22 @@ TODO
 
 Concepts
 --------
+Vim as Language
+***************
+* Verbs - actions performed on nouns - dcyv # delete/change/yank/visually select
+* Modifiers - modify the following noun - iatf/<count> # inside/around/search before/search on/count
+* Noun - describe the object - ws)p}tb # word/sentence/sentence/paragraph/paragraph/tag/block
+* Noun as motion - move to noun size
+* Sentences - <verb><modifier><noun>
+
+Motions, Operators, Text Objects
+********************************
+* Motions - :h navigation - move cursor - accept count - e.g. hjklwb/
+* Operators - :h operator - act on a region of text - accept count e.g. d ~ gU >
+   * Normal mode - Operator first, then motion
+   * Visual mode - Operator acts on selection
+* Text Objects - :h text-objects - act on surrounding area (objects) - accept count - e.g. word, sentence, surrounded by parentheses
+
 Folding
 *******
 * z action is mostly used for folding
@@ -76,14 +94,6 @@ Arguments
 Register - a place where vim stores text
 ****************************************
 * TODO
-
-Motions, Operators, Text Objects
-********************************
-* Motions - :h navigation - move cursor - accept count - e.g. hjklwb/
-* Operators - :h operator - act on a region of text - accept count e.g. d ~ gU >
-   * Normal mode - Operator first, then motion
-   * Visual mode - Operator acts on selection
-* Text Objects - :h text-objects - act on surrounding area (objects) - accept count - e.g. word, sentence, surrounded by parentheses
 
 Modes
 *****
